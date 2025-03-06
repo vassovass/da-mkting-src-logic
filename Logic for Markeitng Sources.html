@@ -1,0 +1,2273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Comparison Tool</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            background-color: #f5f5f5;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* Container for all panels */
+        .container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Panel styles */
+        .panel {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            background-color: #fff;
+            border-right: 1px solid #ddd;
+            transition: flex 0.3s ease;
+        }
+        
+        .panel:last-child {
+            border-right: none;
+        }
+        
+        /* Panel header */
+        .panel-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* Header buttons container */
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* Copy button */
+        .copy-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Copy success message */
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        /* Panel content */
+        .panel-content {
+            padding: 15px;
+            overflow-y: auto;
+            height: calc(100% - 58px);
+        }
+        
+        /* Resizer handles */
+        .resizer {
+            width: 10px;
+            height: 100%;
+            background-color: #ddd;
+            cursor: col-resize;
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 20;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        
+        .resizer:hover {
+            opacity: 1;
+            background-color: #bbb;
+        }
+        
+        /* Expand/collapse buttons */
+        .expand-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.3s;
+        }
+        
+        .expand-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Section title container */
+        .section-title-container {
+            position: relative;
+            margin-bottom: 20px;
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        /* Section styles */
+        .logic-section {
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .logic-section:last-child {
+            border-bottom: none;
+        }
+        
+        /* Section connectors to visually show alignment */
+        .section-connector {
+            position: absolute;
+            left: -10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #4CAF50;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .panel:hover .section-connector {
+            opacity: 0.7;
+        }
+        
+        /* Code blocks */
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        
+        /* Syntax highlighting */
+        .keyword { color: #0000ff; }
+        .string { color: #a31515; }
+        .comment { color: #008000; }
+        .variable { color: #aa0d91; }
+        .number { color: #098658; }
+        .operator { color: #000000; }
+        
+        /* Natural language styling */
+        h3, h4 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        h4 {
+            font-size: 16px;
+        }
+        
+        ul {
+            margin-left: 20px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .panel {
+                height: 33.33vh;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            .resizer {
+                width: 100%;
+                height: 10px;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                cursor: row-resize;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hidden copy notification -->
+        <div id="copySuccess" class="copy-success">Copied to clipboard!</div>
+        
+        <!-- Hidden raw text storage -->
+        <textarea id="regexRawText" style="display:none;">###########################################################################
+# 1) FIRST TOUCH: $F174 (Source HL), $F175 (Medium HL)
+###########################################################################
+if ( $F174 == "HorizonGuides" || $F175 == "HorizonGuides" ): 
+    9;
+
+elseif ( 
+    $F174 == "ecourse-submit" || $F175 == "ecourse-submit" ||
+    $F174 == "ecourse" || $F175 == "ecourse" ||
+    $F174 == "Newsletter" || $F175 == "Newsletter" ||
+    $F174 == "ActiveCampaign" || $F175 == "ActiveCampaign" ||
+    $F174 == "activecampaign.com" || $F175 == "activecampaign.com" ||
+    $F174 == "activeCampaign" || $F175 == "activeCampaign" ||
+    $F174 == "Activecampaign" || $F175 == "Activecampaign" 
+): 
+    10;
+
+elseif ( 
+    $F174 == "Facebook" || $F174 == "facebook" || 
+    $F174 == "https://www.facebook.com" || $F174 == "m.facebook.com" || $F174 == "lm.facebook.com" || $F174 == "l.facebook.com" || $F174 == "facebook.com" ||
+    $F175 == "Facebook" || $F175 == "facebook" || 
+    $F175 == "https://www.facebook.com" || $F175 == "m.facebook.com" || $F175 == "lm.facebook.com" || $F175 == "l.facebook.com" || $F175 == "facebook.com"
+): 
+    if ( $F175 == "paid" || $F175 == "Paid" || $F175 == "cpc" || $F180 != "" ):
+        6; /* Paid Social */
+    else:
+        5; /* Organic Social */
+    endif;
+
+elseif ( 
+    $F174 == "Google" || $F174 == "google" || 
+    $F174 == "lens.google.com" || $F174 == "search.google.com" || $F174 == "classroom.google.com" || $F174 == "cse.google.com" ||
+    $F175 == "Google" || $F175 == "google" || 
+    $F175 == "lens.google.com" || $F175 == "search.google.com" || $F175 == "classroom.google.com" || $F175 == "cse.google.com"
+):
+    if ( $F175 == "paid" || $F175 == "Paid" || $F175 == "cpc" || $F181 != "" ):
+        19; /* Paid Google */
+    else:
+        7;  /* Organic Google */
+    endif;
+
+###########################################################################
+# 2) LAST TOUCH: $F169 (Source), $F170 (Medium)
+###########################################################################
+elseif ( $F169 == "HorizonGuides" || $F170 == "HorizonGuides" ): 
+    9;
+
+elseif ( 
+    $F169 == "ecourse-submit" || $F170 == "ecourse-submit" ||
+    $F169 == "ecourse" || $F170 == "ecourse" ||
+    $F169 == "Newsletter" || $F170 == "Newsletter" ||
+    $F169 == "ActiveCampaign" || $F170 == "ActiveCampaign" ||
+    $F169 == "activecampaign.com" || $F170 == "activecampaign.com" ||
+    $F169 == "activeCampaign" || $F170 == "activeCampaign" ||
+    $F169 == "Activecampaign" || $F170 == "Activecampaign"
+): 
+    10;
+
+elseif ( 
+    $F169 == "Facebook" || $F169 == "facebook" || 
+    $F169 == "https://www.facebook.com" || $F169 == "m.facebook.com" || $F169 == "lm.facebook.com" || $F169 == "l.facebook.com" || $F169 == "facebook.com" ||
+    $F170 == "Facebook" || $F170 == "facebook" || 
+    $F170 == "https://www.facebook.com" || $F170 == "m.facebook.com" || $F170 == "lm.facebook.com" || $F170 == "l.facebook.com" || $F170 == "facebook.com"
+): 
+    if ( $F170 == "paid" || $F170 == "Paid" || $F170 == "cpc" || $F180 != "" ):
+        6; 
+    else:
+        5;
+    endif;
+
+elseif ( 
+    $F169 == "Google" || $F169 == "google" || 
+    $F169 == "lens.google.com" || $F169 == "search.google.com" || $F169 == "classroom.google.com" || $F169 == "cse.google.com" ||
+    $F170 == "Google" || $F170 == "google" || 
+    $F170 == "lens.google.com" || $F170 == "search.google.com" || $F170 == "classroom.google.com" || $F170 == "cse.google.com"
+):
+    if ( $F170 == "paid" || $F170 == "Paid" || $F170 == "cpc" || $F181 != "" ):
+        19;
+    else:
+        7;
+    endif;
+
+###########################################################################
+# 3) ORGANIC FIELDS: $F192, $F198
+###########################################################################
+elseif ( $F192 == "HorizonGuides" || $F198 == "HorizonGuides" ):
+    9;
+
+elseif ( 
+    $F192 == "ecourse-submit" || $F198 == "ecourse-submit" ||
+    $F192 == "ecourse" || $F198 == "ecourse" ||
+    $F192 == "Newsletter" || $F198 == "Newsletter" ||
+    $F192 == "ActiveCampaign" || $F198 == "ActiveCampaign" ||
+    $F192 == "activecampaign.com" || $F198 == "activecampaign.com" ||
+    $F192 == "activeCampaign" || $F198 == "activeCampaign" ||
+    $F192 == "Activecampaign" || $F198 == "Activecampaign"
+): 
+    10;
+
+elseif ( 
+    $F192 == "Facebook" || $F192 == "facebook" || 
+    $F192 == "https://www.facebook.com" || $F192 == "m.facebook.com" || $F192 == "lm.facebook.com" || $F192 == "l.facebook.com" || $F192 == "facebook.com" ||
+    $F198 == "Facebook" || $F198 == "facebook" ||
+    $F198 == "https://www.facebook.com" || $F198 == "m.facebook.com" || $F198 == "lm.facebook.com" || $F198 == "l.facebook.com" || $F198 == "facebook.com"
+):
+    if ( $F198 == "paid" || $F198 == "Paid" || $F198 == "cpc" || $F180 != "" ):
+        6;
+    else:
+        5;
+    endif;
+
+elseif ( 
+    $F192 == "Google" || $F192 == "google" || 
+    $F192 == "lens.google.com" || $F192 == "search.google.com" || $F192 == "classroom.google.com" || $F192 == "cse.google.com" ||
+    $F198 == "Google" || $F198 == "google" ||
+    $F198 == "lens.google.com" || $F198 == "search.google.com" || $F198 == "classroom.google.com" || $F198 == "cse.google.com"
+):
+    if ( $F198 == "paid" || $F198 == "Paid" || $F198 == "cpc" || $F181 != "" ):
+        19;
+    else:
+        7;
+    endif;
+
+###########################################################################
+# 4) DEFAULT => 3
+###########################################################################
+else:
+    3;
+endif;</textarea>
+
+        <textarea id="pseudoRawText" style="display:none;">###########################################################################
+# 1) FIRST TOUCH:
+#    Fields:
+#      FirstTouchSourceHL    (previously $F174)
+#      FirstTouchMediumHL    (previously $F175)
+###########################################################################
+if ( FirstTouchSourceHL == "HorizonGuides" OR FirstTouchMediumHL == "HorizonGuides" ):
+    return 9;
+
+elseif (
+    FirstTouchSourceHL == "ecourse-submit" OR FirstTouchMediumHL == "ecourse-submit" OR
+    FirstTouchSourceHL == "ecourse"        OR FirstTouchMediumHL == "ecourse"        OR
+    FirstTouchSourceHL == "Newsletter"     OR FirstTouchMediumHL == "Newsletter"     OR
+    FirstTouchSourceHL == "ActiveCampaign" OR FirstTouchMediumHL == "ActiveCampaign" OR
+    FirstTouchSourceHL == "activecampaign.com" OR FirstTouchMediumHL == "activecampaign.com" OR
+    FirstTouchSourceHL == "activeCampaign"     OR FirstTouchMediumHL == "activeCampaign"     OR
+    FirstTouchSourceHL == "Activecampaign"     OR FirstTouchMediumHL == "Activecampaign"
+):
+    return 10;
+
+elseif (
+    # FACEBOOK => If paid => ID=6, else ID=5
+    FirstTouchSourceHL matches any facebook domain
+    OR FirstTouchMediumHL matches any facebook domain
+):
+    if (
+        FirstTouchMediumHL == "paid" OR FirstTouchMediumHL == "Paid" OR 
+        FirstTouchMediumHL == "cpc"  
+        OR
+        FacebookAdsClickIDHL != ""
+    ):
+        return 6;  # Paid Social
+    else:
+        return 5;  # Organic Social
+    endif;
+
+elseif (
+    # GOOGLE => If paid => ID=19, else ID=7
+    FirstTouchSourceHL matches google domain
+    OR FirstTouchMediumHL matches google domain
+):
+    if (
+        FirstTouchMediumHL == "paid" OR FirstTouchMediumHL == "Paid" OR 
+        FirstTouchMediumHL == "cpc"
+        OR
+        GoogleAdsClickIDHL != ""
+    ):
+        return 19;  # Paid Google
+    else:
+        return 7;   # Organic Google
+    endif;
+
+###########################################################################
+# 2) LAST TOUCH:
+#    Fields:
+#      LastTouchSourceHL  (previously $F169)
+#      LastTouchMediumHL  (previously $F170)
+###########################################################################
+elseif ( LastTouchSourceHL == "HorizonGuides" OR LastTouchMediumHL == "HorizonGuides" ):
+    return 9;
+
+elseif (
+    LastTouchSourceHL == "ecourse-submit" OR LastTouchMediumHL == "ecourse-submit" OR
+    LastTouchSourceHL == "ecourse"        OR LastTouchMediumHL == "ecourse"        OR
+    LastTouchSourceHL == "Newsletter"     OR LastTouchMediumHL == "Newsletter"     OR
+    LastTouchSourceHL == "ActiveCampaign" OR LastTouchMediumHL == "ActiveCampaign" OR
+    LastTouchSourceHL == "activecampaign.com" OR LastTouchMediumHL == "activecampaign.com" OR
+    LastTouchSourceHL == "activeCampaign"     OR LastTouchMediumHL == "activeCampaign"     OR
+    LastTouchSourceHL == "Activecampaign"     OR LastTouchMediumHL == "Activecampaign"
+):
+    return 10;
+
+elseif (
+    # FACEBOOK => If paid => ID=6, else ID=5
+    LastTouchSourceHL  matches any facebook domain
+    OR LastTouchMediumHL matches any facebook domain
+):
+    if (
+        LastTouchMediumHL == "paid" OR LastTouchMediumHL == "Paid" OR
+        LastTouchMediumHL == "cpc"
+        OR
+        FacebookAdsClickIDHL != ""
+    ):
+        return 6;
+    else:
+        return 5;
+    endif;
+
+elseif (
+    # GOOGLE => If paid => ID=19, else ID=7
+    LastTouchSourceHL matches google domain
+    OR LastTouchMediumHL matches google domain
+):
+    if (
+        LastTouchMediumHL == "paid" OR LastTouchMediumHL == "Paid" OR 
+        LastTouchMediumHL == "cpc"
+        OR
+        GoogleAdsClickIDHL != ""
+    ):
+        return 19;
+    else:
+        return 7;
+    endif;
+
+###########################################################################
+# 3) ORGANIC FIELDS:
+#    Fields:
+#      OrganicPlatformHL (previously $F192)
+#      OrganicURLHL      (previously $F198)
+###########################################################################
+elseif ( OrganicPlatformHL == "HorizonGuides" OR OrganicURLHL == "HorizonGuides" ):
+    return 9;
+
+elseif (
+    OrganicPlatformHL == "ecourse-submit" OR OrganicURLHL == "ecourse-submit" OR
+    OrganicPlatformHL == "ecourse"        OR OrganicURLHL == "ecourse"        OR
+    OrganicPlatformHL == "Newsletter"     OR OrganicURLHL == "Newsletter"     OR
+    OrganicPlatformHL == "ActiveCampaign" OR OrganicURLHL == "ActiveCampaign" OR
+    OrganicPlatformHL == "activecampaign.com" OR OrganicURLHL == "activecampaign.com" OR
+    OrganicPlatformHL == "activeCampaign"     OR OrganicURLHL == "activeCampaign"     OR
+    OrganicPlatformHL == "Activecampaign"     OR OrganicURLHL == "Activecampaign"
+):
+    return 10;
+
+elseif (
+    # FACEBOOK => If paid => ID=6, else ID=5
+    OrganicPlatformHL matches facebook domain
+    OR OrganicURLHL matches facebook domain
+):
+    if (
+        OrganicURLHL == "paid" OR OrganicURLHL == "Paid" OR 
+        OrganicURLHL == "cpc"
+        OR
+        FacebookAdsClickIDHL != ""
+    ):
+        return 6;
+    else:
+        return 5;
+    endif;
+
+elseif (
+    # GOOGLE => If paid => ID=19, else=7
+    OrganicPlatformHL matches google domain
+    OR OrganicURLHL matches google domain
+):
+    if (
+        OrganicURLHL == "paid" OR OrganicURLHL == "Paid" OR 
+        OrganicURLHL == "cpc"
+        OR
+        GoogleAdsClickIDHL != ""
+    ):
+        return 19;
+    else:
+        return 7;
+    endif;
+
+###########################################################################
+# 4) DEFAULT => 3
+###########################################################################
+else:
+    return 3;
+endif;</textarea>
+
+        <textarea id="naturalRawText" style="display:none;">## 1) First Touch (Fields: **FirstTouchSourceHL** and **FirstTouchMediumHL**)
+
+### If either field says **"HorizonGuides"**
+
+- The lead is assigned **ID=9**.(In other words, if "HorizonGuides" is detected, we label it as that specific marketing source and end.)
+
+### Else if it's **eCourse / Newsletter / ActiveCampaign**
+
+- If **either** field is any one of these:then the lead is assigned **ID=10**.(We group eCourse, Newsletter, and all activecampaign variants under the same ID=10.)
+    
+    ```
+    arduino
+    CopyEdit
+    "ecourse-submit"
+    "ecourse"
+    "Newsletter"
+    "ActiveCampaign"
+    "activecampaign.com"
+    "activeCampaign"
+    "Activecampaign"
+    
+    ```
+    
+
+### Else if **Facebook** domain is found
+
+- Specifically, if either field **matches**:we say, "OK, it's Facebook."Next, we check if this is a **paid** Facebook lead or an **organic** one:
+    
+    ```
+    arduino
+    CopyEdit
+    "Facebook", "facebook",
+    "https://www.facebook.com",
+    "m.facebook.com", "lm.facebook.com",
+    "l.facebook.com", "facebook.com"
+    
+    ```
+    
+    - If the Medium says **"paid"**, **"Paid"**, or **"cpc"**,**OR** if **FacebookAdsClickIDHL** (the hidden field for FB ads) is **not empty**,then it's **Paid Social (ID=6)**.
+    - Otherwise, it's **Organic Social (ID=5)**.
+
+### Else if **Google** domain is found
+
+- If either field has any of these:we say, "OK, it's Google."Next, we check if it's **paid** or **organic**:
+    
+    ```
+    arduino
+    CopyEdit
+    "Google", "google",
+    "lens.google.com", "search.google.com",
+    "classroom.google.com", "cse.google.com"
+    
+    ```
+    
+    - If the Medium says **"paid"**, **"Paid"**, or **"cpc"**,**OR** if **GoogleAdsClickIDHL** (the hidden field for Google ads) is **not empty**,then it's **Paid Google (ID=19)**.
+    - Otherwise, it's **Organic Google (ID=7)**.
+
+### If none of those match, we move on to the next layer (Last Touch).
+
+---
+
+## 2) Last Touch (Fields: **LastTouchSourceHL** and **LastTouchMediumHL**)
+
+- We repeat **the same checks** in the same order:
+    1. **HorizonGuides** => ID=9
+    2. **eCourse/Newsletter/ActiveCampaign** => ID=10
+    3. **Facebook** => If paid => ID=6, else ID=5
+    4. **Google** => If paid => ID=19, else ID=7
+
+If still no match, we move on to the final layer: Organic.
+
+---
+
+## 3) Organic (Fields: **OrganicPlatformHL** and **OrganicURLHL**)
+
+- Again, the **same** logic in the **same** order:
+    1. **HorizonGuides** => ID=9
+    2. **eCourse/Newsletter/ActiveCampaign** => ID=10
+    3. **Facebook** => If "paid," ID=6, else 5
+    4. **Google** => If "paid," ID=19, else 7
+
+---
+
+## 4) Default
+
+- If none of the three layers sees a match for HorizonGuides, eCourse, Facebook, or Google, we assign **ID=3**.
+
+---
+
+## Summary
+
+- We first check if the lead came from **HorizonGuides** (ID=9).
+- If not, we check if it's eCourse / Newsletter / ActiveCampaign (ID=10).
+- If not, we check if it's **Facebook**.
+    - If yes: Is it "paid" or "cpc" or do we have a Facebook Ads ID? Then ID=6 (Paid Social). Otherwise ID=5 (Organic Social).
+- If not, we check if it's **Google**.
+    - If yes: Is it "paid" or "cpc" or do we have a Google Ads ID? Then ID=19 (Paid Google). Otherwise ID=7 (Organic Google).
+- Once a match is found in **First Touch**, we stop. If not found, we do the **same checks** in **Last Touch**. If still not found, the **same checks** in **Organic**. If there's still no match, we give it ID=3.</textarea>
+        <!-- Panel 1: Regex Logic -->
+        <div id="panel1" class="panel">
+            <div class="panel-header">
+                <span>Regex Logic</span>
+                <div class="header-buttons">
+                    <button class="copy-btn" id="copy1">Copy All</button>
+                    <button class="expand-btn" id="expand1">⤢</button>
+                </div>
+            </div>
+            <div class="panel-content" id="content1">
+                <!-- #################### FIRST TOUCH SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">FIRST TOUCH</div>
+                </div>
+
+                <!-- Section 1: HorizonGuides Check -->
+                <div class="logic-section" data-section="horizon-guides-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 1) FIRST TOUCH: $F174 (Source HL), $F175 (Medium HL)</span>
+<span class="comment"># Check for HorizonGuides references - ID=9</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">if</span> ( <span class="variable">$F174</span> == <span class="string">"HorizonGuides"</span> || <span class="variable">$F175</span> == <span class="string">"HorizonGuides"</span> ): 
+    <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 2: eCourse/Newsletter/ActiveCampaign Check -->
+                <div class="logic-section" data-section="ecourse-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment"># Check for Newsletter, eCourse, or ActiveCampaign references - ID=10</span>
+<span class="keyword">elseif</span> ( 
+    <span class="variable">$F174</span> == <span class="string">"ecourse-submit"</span> || <span class="variable">$F175</span> == <span class="string">"ecourse-submit"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"ecourse"</span> || <span class="variable">$F175</span> == <span class="string">"ecourse"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"Newsletter"</span> || <span class="variable">$F175</span> == <span class="string">"Newsletter"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"ActiveCampaign"</span> || <span class="variable">$F175</span> == <span class="string">"ActiveCampaign"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"activecampaign.com"</span> || <span class="variable">$F175</span> == <span class="string">"activecampaign.com"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"activeCampaign"</span> || <span class="variable">$F175</span> == <span class="string">"activeCampaign"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"Activecampaign"</span> || <span class="variable">$F175</span> == <span class="string">"Activecampaign"</span> 
+): 
+    <span class="number">10</span>;</code></pre>
+                </div>
+                
+                <!-- Section 3: Facebook Check -->
+                <div class="logic-section" data-section="facebook-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment"># Check for Facebook references - If paid/CPC, ID=6, otherwise ID=5</span>
+<span class="keyword">elseif</span> ( 
+    <span class="variable">$F174</span> == <span class="string">"Facebook"</span> || <span class="variable">$F174</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F174</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"facebook.com"</span> ||
+    <span class="variable">$F175</span> == <span class="string">"Facebook"</span> || <span class="variable">$F175</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F175</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"facebook.com"</span>
+): 
+    <span class="keyword">if</span> ( <span class="variable">$F175</span> == <span class="string">"paid"</span> || <span class="variable">$F175</span> == <span class="string">"Paid"</span> || <span class="variable">$F175</span> == <span class="string">"cpc"</span> || <span class="variable">$F180</span> != <span class="string">""</span> ):
+        <span class="number">6</span>; <span class="comment">/* Paid Social */</span>
+    <span class="keyword">else</span>:
+        <span class="number">5</span>; <span class="comment">/* Organic Social */</span>
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- Section 4: Google Check -->
+                <div class="logic-section" data-section="google-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment"># Check for Google references - If paid/CPC, ID=19, otherwise ID=7</span>
+<span class="keyword">elseif</span> ( 
+    <span class="variable">$F174</span> == <span class="string">"Google"</span> || <span class="variable">$F174</span> == <span class="string">"google"</span> || 
+    <span class="variable">$F174</span> == <span class="string">"lens.google.com"</span> || <span class="variable">$F174</span> == <span class="string">"search.google.com"</span> || <span class="variable">$F174</span> == <span class="string">"classroom.google.com"</span> || <span class="variable">$F174</span> == <span class="string">"cse.google.com"</span> ||
+    <span class="variable">$F175</span> == <span class="string">"Google"</span> || <span class="variable">$F175</span> == <span class="string">"google"</span> || 
+    <span class="variable">$F175</span> == <span class="string">"lens.google.com"</span> || <span class="variable">$F175</span> == <span class="string">"search.google.com"</span> || <span class="variable">$F175</span> == <span class="string">"classroom.google.com"</span> || <span class="variable">$F175</span> == <span class="string">"cse.google.com"</span>
+):
+    <span class="keyword">if</span> ( <span class="variable">$F175</span> == <span class="string">"paid"</span> || <span class="variable">$F175</span> == <span class="string">"Paid"</span> || <span class="variable">$F175</span> == <span class="string">"cpc"</span> || <span class="variable">$F181</span> != <span class="string">""</span> ):
+        <span class="number">19</span>; <span class="comment">/* Paid Google */</span>
+    <span class="keyword">else</span>:
+        <span class="number">7</span>;  <span class="comment">/* Organic Google */</span>
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- #################### LAST TOUCH SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">LAST TOUCH</div>
+                </div>
+
+                <!-- Section 5: HorizonGuides Check (Last Touch) -->
+                <div class="logic-section" data-section="horizon-guides-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 2) LAST TOUCH: $F169 (Source), $F170 (Medium)</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">elseif</span> ( <span class="variable">$F169</span> == <span class="string">"HorizonGuides"</span> || <span class="variable">$F170</span> == <span class="string">"HorizonGuides"</span> ): 
+    <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 6: eCourse/Newsletter/ActiveCampaign Check (Last Touch) -->
+                <div class="logic-section" data-section="ecourse-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F169</span> == <span class="string">"ecourse-submit"</span> || <span class="variable">$F170</span> == <span class="string">"ecourse-submit"</span> ||
+    <span class="variable">$F169</span> == <span class="string">"ecourse"</span> || <span class="variable">$F170</span> == <span class="string">"ecourse"</span> ||
+    <span class="variable">$F169</span> == <span class="string">"Newsletter"</span> || <span class="variable">$F170</span> == <span class="string">"Newsletter"</span> ||
+    <span class="variable">$F169</span> == <span class="string">"ActiveCampaign"</span> || <span class="variable">$F170</span> == <span class="string">"ActiveCampaign"</span> ||
+    <span class="variable">$F169</span> == <span class="string">"activecampaign.com"</span> || <span class="variable">$F170</span> == <span class="string">"activecampaign.com"</span> ||
+    <span class="variable">$F169</span> == <span class="string">"activeCampaign"</span> || <span class="variable">$F170</span> == <span class="string">"activeCampaign"</span> ||
+    <span class="variable">$F169</span> == <span class="string">"Activecampaign"</span> || <span class="variable">$F170</span> == <span class="string">"Activecampaign"</span>
+): 
+    <span class="number">10</span>;</code></pre>
+                </div>
+
+                <!-- Section 7: Facebook Check (Last Touch) -->
+                <div class="logic-section" data-section="facebook-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F169</span> == <span class="string">"Facebook"</span> || <span class="variable">$F169</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F169</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F169</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F169</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F169</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F169</span> == <span class="string">"facebook.com"</span> ||
+    <span class="variable">$F170</span> == <span class="string">"Facebook"</span> || <span class="variable">$F170</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F170</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F170</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F170</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F170</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F170</span> == <span class="string">"facebook.com"</span>
+): 
+    <span class="keyword">if</span> ( <span class="variable">$F170</span> == <span class="string">"paid"</span> || <span class="variable">$F170</span> == <span class="string">"Paid"</span> || <span class="variable">$F170</span> == <span class="string">"cpc"</span> || <span class="variable">$F180</span> != <span class="string">""</span> ):
+        <span class="number">6</span>; 
+    <span class="keyword">else</span>:
+        <span class="number">5</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- Section 8: Google Check (Last Touch) -->
+                <div class="logic-section" data-section="google-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F169</span> == <span class="string">"Google"</span> || <span class="variable">$F169</span> == <span class="string">"google"</span> || 
+    <span class="variable">$F169</span> == <span class="string">"lens.google.com"</span> || <span class="variable">$F169</span> == <span class="string">"search.google.com"</span> || <span class="variable">$F169</span> == <span class="string">"classroom.google.com"</span> || <span class="variable">$F169</span> == <span class="string">"cse.google.com"</span> ||
+    <span class="variable">$F170</span> == <span class="string">"Google"</span> || <span class="variable">$F170</span> == <span class="string">"google"</span> || 
+    <span class="variable">$F170</span> == <span class="string">"lens.google.com"</span> || <span class="variable">$F170</span> == <span class="string">"search.google.com"</span> || <span class="variable">$F170</span> == <span class="string">"classroom.google.com"</span> || <span class="variable">$F170</span> == <span class="string">"cse.google.com"</span>
+):
+    <span class="keyword">if</span> ( <span class="variable">$F170</span> == <span class="string">"paid"</span> || <span class="variable">$F170</span> == <span class="string">"Paid"</span> || <span class="variable">$F170</span> == <span class="string">"cpc"</span> || <span class="variable">$F181</span> != <span class="string">""</span> ):
+        <span class="number">19</span>;
+    <span class="keyword">else</span>:
+        <span class="number">7</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- #################### ORGANIC FIELDS SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">ORGANIC FIELDS</div>
+                </div>
+
+                <!-- Section 9: HorizonGuides Check (Organic) -->
+                <div class="logic-section" data-section="horizon-guides-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 3) ORGANIC FIELDS: $F192, $F198</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">elseif</span> ( <span class="variable">$F192</span> == <span class="string">"HorizonGuides"</span> || <span class="variable">$F198</span> == <span class="string">"HorizonGuides"</span> ):
+    <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 10: eCourse/Newsletter/ActiveCampaign Check (Organic) -->
+                <div class="logic-section" data-section="ecourse-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F192</span> == <span class="string">"ecourse-submit"</span> || <span class="variable">$F198</span> == <span class="string">"ecourse-submit"</span> ||
+    <span class="variable">$F192</span> == <span class="string">"ecourse"</span> || <span class="variable">$F198</span> == <span class="string">"ecourse"</span> ||
+    <span class="variable">$F192</span> == <span class="string">"Newsletter"</span> || <span class="variable">$F198</span> == <span class="string">"Newsletter"</span> ||
+    <span class="variable">$F192</span> == <span class="string">"ActiveCampaign"</span> || <span class="variable">$F198</span> == <span class="string">"ActiveCampaign"</span> ||
+    <span class="variable">$F192</span> == <span class="string">"activecampaign.com"</span> || <span class="variable">$F198</span> == <span class="string">"activecampaign.com"</span> ||
+    <span class="variable">$F192</span> == <span class="string">"activeCampaign"</span> || <span class="variable">$F198</span> == <span class="string">"activeCampaign"</span> ||
+    <span class="variable">$F192</span> == <span class="string">"Activecampaign"</span> || <span class="variable">$F198</span> == <span class="string">"Activecampaign"</span>
+): 
+    <span class="number">10</span>;</code></pre>
+                </div>
+
+                <!-- Section 11: Facebook Check (Organic) -->
+                <div class="logic-section" data-section="facebook-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F192</span> == <span class="string">"Facebook"</span> || <span class="variable">$F192</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F192</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F192</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F192</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F192</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F192</span> == <span class="string">"facebook.com"</span> ||
+    <span class="variable">$F198</span> == <span class="string">"Facebook"</span> || <span class="variable">$F198</span> == <span class="string">"facebook"</span> ||
+    <span class="variable">$F198</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F198</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F198</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F198</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F198</span> == <span class="string">"facebook.com"</span>
+):
+    <span class="keyword">if</span> ( <span class="variable">$F198</span> == <span class="string">"paid"</span> || <span class="variable">$F198</span> == <span class="string">"Paid"</span> || <span class="variable">$F198</span> == <span class="string">"cpc"</span> || <span class="variable">$F180</span> != <span class="string">""</span> ):
+        <span class="number">6</span>;
+    <span class="keyword">else</span>:
+        <span class="number">5</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- Section 12: Google Check (Organic) -->
+                <div class="logic-section" data-section="google-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F192</span> == <span class="string">"Google"</span> || <span class="variable">$F192</span> == <span class="string">"google"</span> || 
+    <span class="variable">$F192</span> == <span class="string">"lens.google.com"</span> || <span class="variable">$F192</span> == <span class="string">"search.google.com"</span> || <span class="variable">$F192</span> == <span class="string">"classroom.google.com"</span> || <span class="variable">$F192</span> == <span class="string">"cse.google.com"</span> ||
+    <span class="variable">$F198</span> == <span class="string">"Google"</span> || <span class="variable">$F198</span> == <span class="string">"google"</span> ||
+    <span class="variable">$F198</span> == <span class="string">"lens.google.com"</span> || <span class="variable">$F198</span> == <span class="string">"search.google.com"</span> || <span class="variable">$F198</span> == <span class="string">"classroom.google.com"</span> || <span class="variable">$F198</span> == <span class="string">"cse.google.com"</span>
+):
+    <span class="keyword">if</span> ( <span class="variable">$F198</span> == <span class="string">"paid"</span> || <span class="variable">$F198</span> == <span class="string">"Paid"</span> || <span class="variable">$F198</span> == <span class="string">"cpc"</span> || <span class="variable">$F181</span> != <span class="string">""</span> ):
+        <span class="number">19</span>;
+    <span class="keyword">else</span>:
+        <span class="number">7</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- #################### DEFAULT SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">DEFAULT</div>
+                </div>
+
+                <!-- Section 13: Default -->
+                <div class="logic-section" data-section="default">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 4) DEFAULT => 3</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">else</span>:
+    <span class="number">3</span>;
+<span class="keyword">endif</span>;</code></pre>
+                </div>
+            </div>
+            <div class="resizer" id="resizer1"></div>
+        </div>
+        
+        <!-- Panel 2: Pseudo Logic -->
+        <div id="panel2" class="panel">
+            <div class="panel-header">
+                <span>Pseudo Logic</span>
+                <div class="header-buttons">
+                    <button class="copy-btn" id="copy2">Copy All</button>
+                    <button class="expand-btn" id="expand2">⤢</button>
+                </div>
+            </div>
+            <div class="panel-content" id="content2">
+                <!-- #################### FIRST TOUCH SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">FIRST TOUCH</div>
+                </div>
+
+                <!-- Section 1: HorizonGuides Check -->
+                <div class="logic-section" data-section="horizon-guides-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 1) FIRST TOUCH:</span>
+<span class="comment">#    Fields:</span>
+<span class="comment">#      FirstTouchSourceHL    (previously $F174)</span>
+<span class="comment">#      FirstTouchMediumHL    (previously $F175)</span>
+<span class="comment">#    HorizonGuides check - ID=9</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">if</span> ( <span class="variable">FirstTouchSourceHL</span> == <span class="string">"HorizonGuides"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"HorizonGuides"</span> ):
+    <span class="keyword">return</span> <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 2: eCourse/Newsletter/ActiveCampaign Check -->
+                <div class="logic-section" data-section="ecourse-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment"># eCourse/Newsletter/ActiveCampaign check - ID=10</span>
+<span class="keyword">elseif</span> (
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"ecourse-submit"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"ecourse-submit"</span> OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"ecourse"</span>        OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"ecourse"</span>        OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"Newsletter"</span>     OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Newsletter"</span>     OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"ActiveCampaign"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"ActiveCampaign"</span> OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"activecampaign.com"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"activecampaign.com"</span> OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"activeCampaign"</span>     OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"activeCampaign"</span>     OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"Activecampaign"</span>     OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Activecampaign"</span>
+):
+    <span class="keyword">return</span> <span class="number">10</span>;</code></pre>
+                </div>
+                
+                <!-- Section 3: Facebook Check -->
+                <div class="logic-section" data-section="facebook-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment"># Facebook check - If paid/CPC, ID=6, otherwise ID=5</span>
+<span class="keyword">elseif</span> (
+    <span class="comment"># FACEBOOK => If paid => ID=6, else ID=5</span>
+    <span class="variable">FirstTouchSourceHL</span> matches any facebook domain
+    OR <span class="variable">FirstTouchMediumHL</span> matches any facebook domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">FirstTouchMediumHL</span> == <span class="string">"paid"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Paid"</span> OR 
+        <span class="variable">FirstTouchMediumHL</span> == <span class="string">"cpc"</span>  
+        OR
+        <span class="variable">FacebookAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">6</span>;  <span class="comment"># Paid Social</span>
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">5</span>;  <span class="comment"># Organic Social</span>
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- Section 4: Google Check -->
+                <div class="logic-section" data-section="google-first">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment"># Google check - If paid/CPC, ID=19, otherwise ID=7</span>
+<span class="keyword">elseif</span> (
+    <span class="comment"># GOOGLE => If paid => ID=19, else ID=7</span>
+    <span class="variable">FirstTouchSourceHL</span> matches google domain
+    OR <span class="variable">FirstTouchMediumHL</span> matches google domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">FirstTouchMediumHL</span> == <span class="string">"paid"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Paid"</span> OR 
+        <span class="variable">FirstTouchMediumHL</span> == <span class="string">"cpc"</span>
+        OR
+        <span class="variable">GoogleAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">19</span>;  <span class="comment"># Paid Google</span>
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">7</span>;   <span class="comment"># Organic Google</span>
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- #################### LAST TOUCH SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">LAST TOUCH</div>
+                </div>
+
+                <!-- Section 5: HorizonGuides Check (Last Touch) -->
+                <div class="logic-section" data-section="horizon-guides-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 2) LAST TOUCH:</span>
+<span class="comment">#    Fields:</span>
+<span class="comment">#      LastTouchSourceHL  (previously $F169)</span>
+<span class="comment">#      LastTouchMediumHL  (previously $F170)</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">elseif</span> ( <span class="variable">LastTouchSourceHL</span> == <span class="string">"HorizonGuides"</span> OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"HorizonGuides"</span> ):
+    <span class="keyword">return</span> <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 6: eCourse/Newsletter/ActiveCampaign Check (Last Touch) -->
+                <div class="logic-section" data-section="ecourse-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"ecourse-submit"</span> OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"ecourse-submit"</span> OR
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"ecourse"</span>        OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"ecourse"</span>        OR
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"Newsletter"</span>     OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"Newsletter"</span>     OR
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"ActiveCampaign"</span> OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"ActiveCampaign"</span> OR
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"activecampaign.com"</span> OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"activecampaign.com"</span> OR
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"activeCampaign"</span>     OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"activeCampaign"</span>     OR
+    <span class="variable">LastTouchSourceHL</span> == <span class="string">"Activecampaign"</span>     OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"Activecampaign"</span>
+):
+    <span class="keyword">return</span> <span class="number">10</span>;</code></pre>
+                </div>
+
+                <!-- Section 7: Facebook Check (Last Touch) -->
+                <div class="logic-section" data-section="facebook-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="comment"># FACEBOOK => If paid => ID=6, else ID=5</span>
+    <span class="variable">LastTouchSourceHL</span>  matches any facebook domain
+    OR <span class="variable">LastTouchMediumHL</span> matches any facebook domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">LastTouchMediumHL</span> == <span class="string">"paid"</span> OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"Paid"</span> OR
+        <span class="variable">LastTouchMediumHL</span> == <span class="string">"cpc"</span>
+        OR
+        <span class="variable">FacebookAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">6</span>;
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">5</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- Section 8: Google Check (Last Touch) -->
+                <div class="logic-section" data-section="google-last">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="comment"># GOOGLE => If paid => ID=19, else ID=7</span>
+    <span class="variable">LastTouchSourceHL</span> matches google domain
+    OR <span class="variable">LastTouchMediumHL</span> matches google domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">LastTouchMediumHL</span> == <span class="string">"paid"</span> OR <span class="variable">LastTouchMediumHL</span> == <span class="string">"Paid"</span> OR 
+        <span class="variable">LastTouchMediumHL</span> == <span class="string">"cpc"</span>
+        OR
+        <span class="variable">GoogleAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">19</span>;
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">7</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- #################### ORGANIC FIELDS SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">ORGANIC FIELDS</div>
+                </div>
+
+                <!-- Section 9: HorizonGuides Check (Organic) -->
+                <div class="logic-section" data-section="horizon-guides-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 3) ORGANIC FIELDS:</span>
+<span class="comment">#    Fields:</span>
+<span class="comment">#      OrganicPlatformHL (previously $F192)</span>
+<span class="comment">#      OrganicURLHL      (previously $F198)</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">elseif</span> ( <span class="variable">OrganicPlatformHL</span> == <span class="string">"HorizonGuides"</span> OR <span class="variable">OrganicURLHL</span> == <span class="string">"HorizonGuides"</span> ):
+    <span class="keyword">return</span> <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 10: eCourse/Newsletter/ActiveCampaign Check (Organic) -->
+                <div class="logic-section" data-section="ecourse-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"ecourse-submit"</span> OR <span class="variable">OrganicURLHL</span> == <span class="string">"ecourse-submit"</span> OR
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"ecourse"</span>        OR <span class="variable">OrganicURLHL</span> == <span class="string">"ecourse"</span>        OR
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"Newsletter"</span>     OR <span class="variable">OrganicURLHL</span> == <span class="string">"Newsletter"</span>     OR
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"ActiveCampaign"</span> OR <span class="variable">OrganicURLHL</span> == <span class="string">"ActiveCampaign"</span> OR
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"activecampaign.com"</span> OR <span class="variable">OrganicURLHL</span> == <span class="string">"activecampaign.com"</span> OR
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"activeCampaign"</span>     OR <span class="variable">OrganicURLHL</span> == <span class="string">"activeCampaign"</span>     OR
+    <span class="variable">OrganicPlatformHL</span> == <span class="string">"Activecampaign"</span>     OR <span class="variable">OrganicURLHL</span> == <span class="string">"Activecampaign"</span>
+):
+    <span class="keyword">return</span> <span class="number">10</span>;</code></pre>
+                </div>
+
+                <!-- Section 11: Facebook Check (Organic) -->
+                <div class="logic-section" data-section="facebook-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="comment"># FACEBOOK => If paid => ID=6, else ID=5</span>
+    <span class="variable">OrganicPlatformHL</span> matches facebook domain
+    OR <span class="variable">OrganicURLHL</span> matches facebook domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">OrganicURLHL</span> == <span class="string">"paid"</span> OR <span class="variable">OrganicURLHL</span> == <span class="string">"Paid"</span> OR 
+        <span class="variable">OrganicURLHL</span> == <span class="string">"cpc"</span>
+        OR
+        <span class="variable">FacebookAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">6</span>;
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">5</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- Section 12: Google Check (Organic) -->
+                <div class="logic-section" data-section="google-organic">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="comment"># GOOGLE => If paid => ID=19, else=7</span>
+    <span class="variable">OrganicPlatformHL</span> matches google domain
+    OR <span class="variable">OrganicURLHL</span> matches google domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">OrganicURLHL</span> == <span class="string">"paid"</span> OR <span class="variable">OrganicURLHL</span> == <span class="string">"Paid"</span> OR 
+        <span class="variable">OrganicURLHL</span> == <span class="string">"cpc"</span>
+        OR
+        <span class="variable">GoogleAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">19</span>;
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">7</span>;
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+
+                <!-- #################### DEFAULT SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">DEFAULT</div>
+                </div>
+
+                <!-- Section 13: Default -->
+                <div class="logic-section" data-section="default">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 4) DEFAULT => 3</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">else</span>:
+    <span class="keyword">return</span> <span class="number">3</span>;
+<span class="keyword">endif</span>;</code></pre>
+                </div>
+            </div>
+            <div class="resizer" id="resizer2"></div>
+        </div>
+        
+        <!-- Panel 3: Natural Language Logic -->
+        <div id="panel3" class="panel">
+            <div class="panel-header">
+                <span>Natural Language Logic</span>
+                <div class="header-buttons">
+                    <button class="copy-btn" id="copy3">Copy All</button>
+                    <button class="expand-btn" id="expand3">⤢</button>
+                </div>
+            </div>
+            <div class="panel-content" id="content3">
+                <!-- #################### FIRST TOUCH SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">FIRST TOUCH</div>
+                </div>
+
+                <!-- Section 1: HorizonGuides Check -->
+                <div class="logic-section" data-section="horizon-guides-first">
+                    <div class="section-connector"></div>
+                    <h3>1) First Touch (Fields: <strong>FirstTouchSourceHL</strong> and <strong>FirstTouchMediumHL</strong>)</h3>
+
+                    <h4>If either field says <strong>"HorizonGuides"</strong></h4>
+                    <ul>
+                        <li>The lead is assigned <strong>ID=9</strong>.</li>
+                        <li>(In other words, if "HorizonGuides" is detected, we label it as that specific marketing source and end.)</li>
+                    </ul>
+                </div>
+
+                <!-- Section 2: eCourse/Newsletter/ActiveCampaign Check -->
+                <div class="logic-section" data-section="ecourse-first">
+                    <div class="section-connector"></div>
+                    <h4>Else if it's <strong>eCourse / Newsletter / ActiveCampaign</strong></h4>
+                    <ul>
+                        <li>If <strong>either</strong> field is any one of these:<br>then the lead is assigned <strong>ID=10</strong>.</li>
+                        <li>(We group eCourse, Newsletter, and all activecampaign variants under the same ID=10.)</li>
+                    </ul>
+                    <pre><code>"ecourse-submit"
+"ecourse"
+"Newsletter"
+"ActiveCampaign"
+"activecampaign.com"
+"activeCampaign"
+"Activecampaign"</code></pre>
+                </div>
+                
+                <!-- Section 3: Facebook Check -->
+                <div class="logic-section" data-section="facebook-first">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Facebook</strong> domain is found</h4>
+                    <ul>
+                        <li>Specifically, if either field <strong>matches</strong>:<br>we say, "OK, it's Facebook."</li>
+                        <li>Next, we check if this is a <strong>paid</strong> Facebook lead or an <strong>organic</strong> one:</li>
+                    </ul>
+                    <pre><code>"Facebook", "facebook",
+"https://www.facebook.com",
+"m.facebook.com", "lm.facebook.com",
+"l.facebook.com", "facebook.com"</code></pre>
+                    <ul>
+                        <li>If the Medium says <strong>"paid"</strong>, <strong>"Paid"</strong>, or <strong>"cpc"</strong>,<br><strong>OR</strong> if <strong>FacebookAdsClickIDHL</strong> (the hidden field for FB ads) is <strong>not empty</strong>,<br>then it's <strong>Paid Social (ID=6)</strong>.</li>
+                        <li>Otherwise, it's <strong>Organic Social (ID=5)</strong>.</li>
+                    </ul>
+                </div>
+
+                <!-- Section 4: Google Check -->
+                <div class="logic-section" data-section="google-first">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Google</strong> domain is found</h4>
+                    <ul>
+                        <li>If either field has any of these:<br>we say, "OK, it's Google."</li>
+                        <li>Next, we check if it's <strong>paid</strong> or <strong>organic</strong>:</li>
+                    </ul>
+                    <pre><code>"Google", "google",
+"lens.google.com", "search.google.com",
+"classroom.google.com", "cse.google.com"</code></pre>
+                    <ul>
+                        <li>If the Medium says <strong>"paid"</strong>, <strong>"Paid"</strong>, or <strong>"cpc"</strong>,<br><strong>OR</strong> if <strong>GoogleAdsClickIDHL</strong> (the hidden field for Google ads) is <strong>not empty</strong>,<br>then it's <strong>Paid Google (ID=19)</strong>.</li>
+                        <li>Otherwise, it's <strong>Organic Google (ID=7)</strong>.</li>
+                    </ul>
+                </div>
+
+                <!-- #################### LAST TOUCH SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">LAST TOUCH</div>
+                </div>
+
+                <!-- Section 5: Last Touch Introduction -->
+                <div class="logic-section" data-section="horizon-guides-last">
+                    <div class="section-connector"></div>
+                    <h3>2) Last Touch (Fields: <strong>LastTouchSourceHL</strong> and <strong>LastTouchMediumHL</strong>)</h3>
+                    <ul>
+                        <li>We repeat <strong>the same checks</strong> in the same order:</li>
+                    </ul>
+                    <h4>If either field says <strong>"HorizonGuides"</strong></h4>
+                    <ul>
+                        <li>The lead is assigned <strong>ID=9</strong>.</li>
+                    </ul>
+                </div>
+
+                <!-- Section 6: eCourse/Newsletter/ActiveCampaign Check (Last Touch) -->
+                <div class="logic-section" data-section="ecourse-last">
+                    <div class="section-connector"></div>
+                    <h4>Else if it's <strong>eCourse / Newsletter / ActiveCampaign</strong></h4>
+                    <ul>
+                        <li>If <strong>either</strong> field matches any of these values, then <strong>ID=10</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Section 7: Facebook Check (Last Touch) -->
+                <div class="logic-section" data-section="facebook-last">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Facebook</strong> domain is found</h4>
+                    <ul>
+                        <li>If either field matches any Facebook domain</li>
+                        <li>If the Medium is "paid" or "Paid" or "cpc" OR if there's a Facebook Ads ID, then <strong>ID=6</strong></li>
+                        <li>Otherwise, <strong>ID=5</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Section 8: Google Check (Last Touch) -->
+                <div class="logic-section" data-section="google-last">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Google</strong> domain is found</h4>
+                    <ul>
+                        <li>If either field matches any Google domain</li>
+                        <li>If the Medium is "paid" or "Paid" or "cpc" OR if there's a Google Ads ID, then <strong>ID=19</strong></li>
+                        <li>Otherwise, <strong>ID=7</strong></li>
+                    </ul>
+                </div>
+
+                <!-- #################### ORGANIC FIELDS SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">ORGANIC FIELDS</div>
+                </div>
+
+                <!-- Section 9: Organic Fields Introduction -->
+                <div class="logic-section" data-section="horizon-guides-organic">
+                    <div class="section-connector"></div>
+                    <h3>3) Organic (Fields: <strong>OrganicPlatformHL</strong> and <strong>OrganicURLHL</strong>)</h3>
+                    <ul>
+                        <li>Again, the <strong>same</strong> logic in the <strong>same</strong> order:</li>
+                    </ul>
+                    <h4>If either field says <strong>"HorizonGuides"</strong></h4>
+                    <ul>
+                        <li>The lead is assigned <strong>ID=9</strong>.</li>
+                    </ul>
+                </div>
+
+                <!-- Section 10: eCourse/Newsletter/ActiveCampaign Check (Organic) -->
+                <div class="logic-section" data-section="ecourse-organic">
+                    <div class="section-connector"></div>
+                    <h4>Else if it's <strong>eCourse / Newsletter / ActiveCampaign</strong></h4>
+                    <ul>
+                        <li>If <strong>either</strong> field matches any of these values, then <strong>ID=10</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Section 11: Facebook Check (Organic) -->
+                <div class="logic-section" data-section="facebook-organic">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Facebook</strong> domain is found</h4>
+                    <ul>
+                        <li>If either field matches any Facebook domain</li>
+                        <li>If the Medium is "paid" or "Paid" or "cpc" OR if there's a Facebook Ads ID, then <strong>ID=6</strong></li>
+                        <li>Otherwise, <strong>ID=5</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Section 12: Google Check (Organic) -->
+                <div class="logic-section" data-section="google-organic">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Google</strong> domain is found</h4>
+                    <ul>
+                        <li>If either field matches any Google domain</li>
+                        <li>If the Medium is "paid" or "Paid" or "cpc" OR if there's a Google Ads ID, then <strong>ID=19</strong></li>
+                        <li>Otherwise, <strong>ID=7</strong></li>
+                    </ul>
+                </div>
+
+                <!-- #################### DEFAULT SECTION #################### -->
+                <div class="section-title-container">
+                    <div class="section-title">DEFAULT</div>
+                </div>
+
+                <!-- Section 13: Default -->
+                <div class="logic-section" data-section="default">
+                    <div class="section-connector"></div>
+                    <h3>4) Default</h3>
+                    <ul>
+                        <li>If none of the three layers sees a match for HorizonGuides, eCourse, Facebook, or Google, we assign <strong>ID=3</strong>.</li>
+                    </ul>
+                    <br>
+                    <h3>Summary</h3>
+                    <ul>
+                        <li>We first check if the lead came from <strong>HorizonGuides</strong> (ID=9).</li>
+                        <li>If not, we check if it's eCourse / Newsletter / ActiveCampaign (ID=10).</li>
+                        <li>If not, we check if it's <strong>Facebook</strong>.
+                            <ul>
+                                <li>If yes: Is it "paid" or "cpc" or do we have a Facebook Ads ID? Then ID=6 (Paid Social). Otherwise ID=5 (Organic Social).</li>
+                            </ul>
+                        </li>
+                        <li>If not, we check if it's <strong>Google</strong>.
+                            <ul>
+                                <li>If yes: Is it "paid" or "cpc" or do we have a Google Ads ID? Then ID=19 (Paid Google). Otherwise ID=7 (Organic Google).</li>
+                            </ul>
+                        </li>
+                        <li>Once a match is found in <strong>First Touch</strong>, we stop. If not found, we do the <strong>same checks</strong> in <strong>Last Touch</strong>. If still not found, the <strong>same checks</strong> in <strong>Organic</strong>. If there's still no match, we give it ID=3.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for the DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get DOM elements
+            const container = document.querySelector('.container');
+            const panels = document.querySelectorAll('.panel');
+            const resizers = document.querySelectorAll('.resizer');
+            const expandBtns = document.querySelectorAll('.expand-btn');
+            const contents = document.querySelectorAll('.panel-content');
+            const copyBtns = document.querySelectorAll('.copy-btn');
+            const copySuccess = document.getElementById('copySuccess');
+            
+            // Raw text elements
+            const regexRawText = document.getElementById('regexRawText');
+            const pseudoRawText = document.getElementById('pseudoRawText');
+            const naturalRawText = document.getElementById('naturalRawText');
+            
+            // Variables to track panel state
+            let expandedPanel = null;
+            let isResizing = false;
+            let currentResizer = null;
+            let initialX = 0;
+            let initialWidth = 0;
+            
+            // Initialize panel sizes
+            const totalWidth = container.clientWidth;
+            const panelWidth = totalWidth / panels.length;
+            
+            panels.forEach((panel, index) => {
+                panel.style.flex = '1';
+            });
+            
+            // Setup copy buttons
+            copyBtns.forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    // Determine which text to copy
+                    let textToCopy = '';
+                    
+                    if (index === 0) {
+                        textToCopy = regexRawText.value;
+                    } else if (index === 1) {
+                        textToCopy = pseudoRawText.value;
+                    } else if (index === 2) {
+                        textToCopy = naturalRawText.value;
+                    }
+                    
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(textToCopy)
+                        .then(() => {
+                            // Show success message
+                            copySuccess.style.opacity = '1';
+                            setTimeout(() => {
+                                copySuccess.style.opacity = '0';
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy text: ', err);
+                            alert('Failed to copy text. Please try again.');
+                        });
+                });
+            });
+            
+            // Function to equalize heights of corresponding sections
+            function equalizeSectionHeights() {
+                // Get all unique section types
+                const sectionTypes = Array.from(
+                    document.querySelectorAll('.logic-section')
+                ).map(section => section.getAttribute('data-section'));
+                
+                const uniqueSectionTypes = [...new Set(sectionTypes)];
+                
+                // For each section type, find the max height
+                uniqueSectionTypes.forEach(type => {
+                    const sections = document.querySelectorAll(`.logic-section[data-section="${type}"]`);
+                    
+                    // First reset heights to auto to get natural height
+                    sections.forEach(section => {
+                        section.style.minHeight = 'auto';
+                    });
+                    
+                    // Calculate max height
+                    let maxHeight = 0;
+                    sections.forEach(section => {
+                        const height = section.offsetHeight;
+                        maxHeight = Math.max(maxHeight, height);
+                    });
+                    
+                    // Apply max height to all sections of this type
+                    sections.forEach(section => {
+                        section.style.minHeight = `${maxHeight}px`;
+                    });
+                });
+            }
+            
+            // Call this initially and on window resize
+            equalizeSectionHeights();
+            window.addEventListener('resize', equalizeSectionHeights);
+            
+            // Setup resizers
+            resizers.forEach((resizer, index) => {
+                const panel = panels[index];
+                
+                // Mouse down event for resizer
+                resizer.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    currentResizer = resizer;
+                    initialX = e.clientX;
+                    initialWidth = panel.getBoundingClientRect().width;
+                    
+                    // Add event listeners for mouse movement and release
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', () => {
+                        isResizing = false;
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        equalizeSectionHeights(); // Re-adjust heights after resize
+                    });
+                    
+                    e.preventDefault();
+                });
+                
+                // Touch support for resizer
+                resizer.addEventListener('touchstart', (e) => {
+                    isResizing = true;
+                    currentResizer = resizer;
+                    initialX = e.touches[0].clientX;
+                    initialWidth = panel.getBoundingClientRect().width;
+                    
+                    document.addEventListener('touchmove', handleTouchMove);
+                    document.addEventListener('touchend', () => {
+                        isResizing = false;
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        equalizeSectionHeights(); // Re-adjust heights after resize
+                    });
+                    
+                    e.preventDefault();
+                });
+            });
+            
+            // Function to handle mouse movement during resize
+            function handleMouseMove(e) {
+                if (!isResizing) return;
+                
+                const index = Array.from(resizers).indexOf(currentResizer);
+                const panel = panels[index];
+                const nextPanel = panels[index + 1];
+                
+                if (!panel || !nextPanel) return;
+                
+                const deltaX = e.clientX - initialX;
+                const newWidth = initialWidth + deltaX;
+                const containerWidth = container.clientWidth;
+                
+                // Don't allow panels to be too small
+                const minWidth = 100;
+                if (newWidth < minWidth || containerWidth - newWidth < minWidth) return;
+                
+                const flexRatio = newWidth / containerWidth;
+                panel.style.flex = flexRatio;
+                nextPanel.style.flex = 1 - flexRatio;
+            }
+            
+            // Function to handle touch movement during resize
+            function handleTouchMove(e) {
+                if (!isResizing) return;
+                
+                const index = Array.from(resizers).indexOf(currentResizer);
+                const panel = panels[index];
+                const nextPanel = panels[index + 1];
+                
+                if (!panel || !nextPanel) return;
+                
+                const deltaX = e.touches[0].clientX - initialX;
+                const newWidth = initialWidth + deltaX;
+                const containerWidth = container.clientWidth;
+                
+                // Don't allow panels to be too small
+                const minWidth = 100;
+                if (newWidth < minWidth || containerWidth - newWidth < minWidth) return;
+                
+                const flexRatio = newWidth / containerWidth;
+                panel.style.flex = flexRatio;
+                nextPanel.style.flex = 1 - flexRatio;
+            }
+            
+            // Setup expand/collapse buttons
+            expandBtns.forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    const panel = panels[index];
+                    
+                    if (expandedPanel === panel) {
+                        // Collapse if already expanded
+                        panels.forEach(p => p.style.flex = '1');
+                        expandedPanel = null;
+                        btn.innerHTML = '⤢';
+                    } else {
+                        // Expand and collapse others
+                        panels.forEach(p => {
+                            if (p === panel) {
+                                p.style.flex = '3';
+                            } else {
+                                p.style.flex = '0.5';
+                            }
+                        });
+                        expandedPanel = panel;
+                        
+                        // Update all buttons
+                        expandBtns.forEach((b, i) => {
+                            b.innerHTML = i === index ? '⤮' : '⤢';
+                        });
+                    }
+                    
+                    // After changing panel sizes, equalize section heights
+                    setTimeout(equalizeSectionHeights, 300); // After transition completes
+                });
+            });
+            
+            // Create a highlight effect on hover to show alignment
+            const allSections = document.querySelectorAll('.logic-section');
+            allSections.forEach(section => {
+                section.addEventListener('mouseenter', () => {
+                    const sectionType = section.getAttribute('data-section');
+                    const relatedSections = document.querySelectorAll(`.logic-section[data-section="${sectionType}"]`);
+                    
+                    relatedSections.forEach(s => {
+                        s.style.backgroundColor = '#f0f8ff'; // Light blue highlight
+                    });
+                });
+                
+                section.addEventListener('mouseleave', () => {
+                    const sectionType = section.getAttribute('data-section');
+                    const relatedSections = document.querySelectorAll(`.logic-section[data-section="${sectionType}"]`);
+                    
+                    relatedSections.forEach(s => {
+                        s.style.backgroundColor = '';
+                    });
+                });
+            });
+            
+            // Synchronized scrolling with better section alignment
+            contents.forEach((content) => {
+                content.addEventListener('scroll', function() {
+                    const scrollTop = this.scrollTop;
+                    
+                    // Find which section is most visible in the viewport
+                    const sections = this.querySelectorAll('.logic-section');
+                    let mostVisibleSection = null;
+                    let maxVisibleHeight = 0;
+                    
+                    sections.forEach(section => {
+                        const rect = section.getBoundingClientRect();
+                        const contentRect = content.getBoundingClientRect();
+                        
+                        // Calculate how much of the section is visible
+                        const visibleTop = Math.max(rect.top, contentRect.top);
+                        const visibleBottom = Math.min(rect.bottom, contentRect.bottom);
+                        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+                        
+                        if (visibleHeight > maxVisibleHeight) {
+                            maxVisibleHeight = visibleHeight;
+                            mostVisibleSection = section;
+                        }
+                    });
+                    
+                    if (mostVisibleSection) {
+                        const sectionType = mostVisibleSection.getAttribute('data-section');
+                        const sectionOffsetTop = mostVisibleSection.offsetTop;
+                        const sectionScrollRatio = (scrollTop - sectionOffsetTop) / mostVisibleSection.offsetHeight;
+                        
+                        // Sync other panels to show the same section at the same relative position
+                        contents.forEach((c) => {
+                            if (c !== this) {
+                                const targetSection = c.querySelector(`.logic-section[data-section="${sectionType}"]`);
+                                if (targetSection) {
+                                    const targetOffset = targetSection.offsetTop;
+                                    const targetScroll = targetOffset + (sectionScrollRatio * targetSection.offsetHeight);
+                                    c.scrollTop = targetScroll;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (expandedPanel) {
+                    // Maintain expanded state
+                    panels.forEach(p => {
+                        if (p === expandedPanel) {
+                            p.style.flex = '3';
+                        } else {
+                            p.style.flex = '0.5';
+                        }
+                    });
+                } else {
+                    // Reset to equal widths
+                    panels.forEach(p => p.style.flex = '1');
+                }
+                
+                // Re-equalize section heights
+                equalizeSectionHeights();
+            });
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Comparison Tool</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            background-color: #f5f5f5;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* Container for all panels */
+        .container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Panel styles */
+        .panel {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            background-color: #fff;
+            border-right: 1px solid #ddd;
+            transition: flex 0.3s ease;
+        }
+        
+        .panel:last-child {
+            border-right: none;
+        }
+        
+        /* Panel header */
+        .panel-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* Panel content */
+        .panel-content {
+            padding: 15px;
+            overflow-y: auto;
+            height: calc(100% - 58px);
+        }
+        
+        /* Resizer handles */
+        .resizer {
+            width: 10px;
+            height: 100%;
+            background-color: #ddd;
+            cursor: col-resize;
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 20;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        
+        .resizer:hover {
+            opacity: 1;
+            background-color: #bbb;
+        }
+        
+        /* Expand/collapse buttons */
+        .expand-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.3s;
+        }
+        
+        .expand-btn:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Section styles */
+        .section {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        /* Code blocks */
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        
+        /* Syntax highlighting */
+        .keyword { color: #0000ff; }
+        .string { color: #a31515; }
+        .comment { color: #008000; }
+        .variable { color: #aa0d91; }
+        .number { color: #098658; }
+        .operator { color: #000000; }
+        
+        /* Alignment classes */
+        .logic-section {
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .logic-section:last-child {
+            border-bottom: none;
+        }
+        
+        /* Section connectors to visually show alignment */
+        .section-connector {
+            position: absolute;
+            left: -10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #4CAF50;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .panel:hover .section-connector {
+            opacity: 0.7;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .panel {
+                height: 33.33vh;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            .resizer {
+                width: 100%;
+                height: 10px;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                cursor: row-resize;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Panel 1: Regex Logic -->
+        <div id="panel1" class="panel">
+            <div class="panel-header">
+                <span>Regex Logic</span>
+                <button class="expand-btn" id="expand1">⤢</button>
+            </div>
+            <div class="panel-content" id="content1">
+                <!-- Title Section -->
+                <div class="section-title-container">
+                    <div class="section-title">FIRST TOUCH</div>
+                </div>
+
+                <!-- Section 1: HorizonGuides Check -->
+                <div class="logic-section" data-section="horizon-guides">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 1) FIRST TOUCH: $F174 (Source HL), $F175 (Medium HL)</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">if</span> ( <span class="variable">$F174</span> == <span class="string">"HorizonGuides"</span> || <span class="variable">$F175</span> == <span class="string">"HorizonGuides"</span> ): 
+    <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 2: eCourse/Newsletter/ActiveCampaign Check -->
+                <div class="logic-section" data-section="ecourse">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F174</span> == <span class="string">"ecourse-submit"</span> || <span class="variable">$F175</span> == <span class="string">"ecourse-submit"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"ecourse"</span> || <span class="variable">$F175</span> == <span class="string">"ecourse"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"Newsletter"</span> || <span class="variable">$F175</span> == <span class="string">"Newsletter"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"ActiveCampaign"</span> || <span class="variable">$F175</span> == <span class="string">"ActiveCampaign"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"activecampaign.com"</span> || <span class="variable">$F175</span> == <span class="string">"activecampaign.com"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"activeCampaign"</span> || <span class="variable">$F175</span> == <span class="string">"activeCampaign"</span> ||
+    <span class="variable">$F174</span> == <span class="string">"Activecampaign"</span> || <span class="variable">$F175</span> == <span class="string">"Activecampaign"</span> 
+): 
+    <span class="number">10</span>;</code></pre>
+                </div>
+                
+                <!-- Section 3: Facebook Check -->
+                <div class="logic-section" data-section="facebook">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> ( 
+    <span class="variable">$F174</span> == <span class="string">"Facebook"</span> || <span class="variable">$F174</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F174</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F174</span> == <span class="string">"facebook.com"</span> ||
+    <span class="variable">$F175</span> == <span class="string">"Facebook"</span> || <span class="variable">$F175</span> == <span class="string">"facebook"</span> || 
+    <span class="variable">$F175</span> == <span class="string">"https://www.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"m.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"lm.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"l.facebook.com"</span> || <span class="variable">$F175</span> == <span class="string">"facebook.com"</span>
+): 
+    <span class="keyword">if</span> ( <span class="variable">$F175</span> == <span class="string">"paid"</span> || <span class="variable">$F175</span> == <span class="string">"Paid"</span> || <span class="variable">$F175</span> == <span class="string">"cpc"</span> || <span class="variable">$F180</span> != <span class="string">""</span> ):
+        <span class="number">6</span>; <span class="comment">/* Paid Social */</span>
+    <span class="keyword">else</span>:
+        <span class="number">5</span>; <span class="comment">/* Organic Social */</span>
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+            </div>
+            <div class="resizer" id="resizer1"></div>
+        </div>
+        
+        <!-- Panel 2: Pseudo Logic -->
+        <div id="panel2" class="panel">
+            <div class="panel-header">
+                <span>Pseudo Logic</span>
+                <button class="expand-btn" id="expand2">⤢</button>
+            </div>
+            <div class="panel-content" id="content2">
+                <!-- Title Section -->
+                <div class="section-title-container">
+                    <div class="section-title">FIRST TOUCH</div>
+                </div>
+
+                <!-- Section 1: HorizonGuides Check -->
+                <div class="logic-section" data-section="horizon-guides">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="comment">###########################################################################</span>
+<span class="comment"># 1) FIRST TOUCH:</span>
+<span class="comment">#    Fields:</span>
+<span class="comment">#      FirstTouchSourceHL    (previously $F174)</span>
+<span class="comment">#      FirstTouchMediumHL    (previously $F175)</span>
+<span class="comment">###########################################################################</span>
+<span class="keyword">if</span> ( <span class="variable">FirstTouchSourceHL</span> == <span class="string">"HorizonGuides"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"HorizonGuides"</span> ):
+    <span class="keyword">return</span> <span class="number">9</span>;</code></pre>
+                </div>
+
+                <!-- Section 2: eCourse/Newsletter/ActiveCampaign Check -->
+                <div class="logic-section" data-section="ecourse">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"ecourse-submit"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"ecourse-submit"</span> OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"ecourse"</span>        OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"ecourse"</span>        OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"Newsletter"</span>     OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Newsletter"</span>     OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"ActiveCampaign"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"ActiveCampaign"</span> OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"activecampaign.com"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"activecampaign.com"</span> OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"activeCampaign"</span>     OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"activeCampaign"</span>     OR
+    <span class="variable">FirstTouchSourceHL</span> == <span class="string">"Activecampaign"</span>     OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Activecampaign"</span>
+):
+    <span class="keyword">return</span> <span class="number">10</span>;</code></pre>
+                </div>
+                
+                <!-- Section 3: Facebook Check -->
+                <div class="logic-section" data-section="facebook">
+                    <div class="section-connector"></div>
+                    <pre><code><span class="keyword">elseif</span> (
+    <span class="comment"># FACEBOOK => If paid => ID=6, else ID=5</span>
+    <span class="variable">FirstTouchSourceHL</span> matches any facebook domain
+    OR <span class="variable">FirstTouchMediumHL</span> matches any facebook domain
+):
+    <span class="keyword">if</span> (
+        <span class="variable">FirstTouchMediumHL</span> == <span class="string">"paid"</span> OR <span class="variable">FirstTouchMediumHL</span> == <span class="string">"Paid"</span> OR 
+        <span class="variable">FirstTouchMediumHL</span> == <span class="string">"cpc"</span>  
+        OR
+        <span class="variable">FacebookAdsClickIDHL</span> != <span class="string">""</span>
+    ):
+        <span class="keyword">return</span> <span class="number">6</span>;  <span class="comment"># Paid Social</span>
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="number">5</span>;  <span class="comment"># Organic Social</span>
+    <span class="keyword">endif</span>;</code></pre>
+                </div>
+            </div>
+            <div class="resizer" id="resizer2"></div>
+        </div>
+        
+        <!-- Panel 3: Natural Language Logic -->
+        <div id="panel3" class="panel">
+            <div class="panel-header">
+                <span>Natural Language Logic</span>
+                <button class="expand-btn" id="expand3">⤢</button>
+            </div>
+            <div class="panel-content" id="content3">
+                <!-- Title Section -->
+                <div class="section-title-container">
+                    <div class="section-title">FIRST TOUCH</div>
+                </div>
+
+                <!-- Section 1: HorizonGuides Check -->
+                <div class="logic-section" data-section="horizon-guides">
+                    <div class="section-connector"></div>
+                    <h3>1) First Touch (Fields: <strong>FirstTouchSourceHL</strong> and <strong>FirstTouchMediumHL</strong>)</h3>
+
+                    <h4>If either field says <strong>"HorizonGuides"</strong></h4>
+                    <ul>
+                        <li>The lead is assigned <strong>ID=9</strong>.</li>
+                        <li>(In other words, if "HorizonGuides" is detected, we label it as that specific marketing source and end.)</li>
+                    </ul>
+                </div>
+
+                <!-- Section 2: eCourse/Newsletter/ActiveCampaign Check -->
+                <div class="logic-section" data-section="ecourse">
+                    <div class="section-connector"></div>
+                    <h4>Else if it's <strong>eCourse / Newsletter / ActiveCampaign</strong></h4>
+                    <ul>
+                        <li>If <strong>either</strong> field is any one of these:<br>then the lead is assigned <strong>ID=10</strong>.</li>
+                        <li>(We group eCourse, Newsletter, and all activecampaign variants under the same ID=10.)</li>
+                    </ul>
+                    <pre><code>"ecourse-submit"
+"ecourse"
+"Newsletter"
+"ActiveCampaign"
+"activecampaign.com"
+"activeCampaign"
+"Activecampaign"</code></pre>
+                </div>
+                
+                <!-- Section 3: Facebook Check -->
+                <div class="logic-section" data-section="facebook">
+                    <div class="section-connector"></div>
+                    <h4>Else if <strong>Facebook</strong> domain is found</h4>
+                    <ul>
+                        <li>Specifically, if either field <strong>matches</strong>:<br>we say, "OK, it's Facebook."</li>
+                        <li>Next, we check if this is a <strong>paid</strong> Facebook lead or an <strong>organic</strong> one:</li>
+                    </ul>
+                    <pre><code>"Facebook", "facebook",
+"https://www.facebook.com",
+"m.facebook.com", "lm.facebook.com",
+"l.facebook.com", "facebook.com"</code></pre>
+                    <ul>
+                        <li>If the Medium says <strong>"paid"</strong>, <strong>"Paid"</strong>, or <strong>"cpc"</strong>,<br><strong>OR</strong> if <strong>FacebookAdsClickIDHL</strong> (the hidden field for FB ads) is <strong>not empty</strong>,<br>then it's <strong>Paid Social (ID=6)</strong>.</li>
+                        <li>Otherwise, it's <strong>Organic Social (ID=5)</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for the DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get DOM elements
+            const container = document.querySelector('.container');
+            const panels = document.querySelectorAll('.panel');
+            const resizers = document.querySelectorAll('.resizer');
+            const expandBtns = document.querySelectorAll('.expand-btn');
+            const contents = document.querySelectorAll('.panel-content');
+            
+            // Variables to track panel state
+            let expandedPanel = null;
+            let isResizing = false;
+            let currentResizer = null;
+            let initialX = 0;
+            let initialWidth = 0;
+            
+            // Initialize panel sizes
+            const totalWidth = container.clientWidth;
+            const panelWidth = totalWidth / panels.length;
+            
+            panels.forEach((panel, index) => {
+                panel.style.flex = '1';
+            });
+            
+            // Function to equalize heights of corresponding sections
+            function equalizeSectionHeights() {
+                // Get all unique section types
+                const sectionTypes = Array.from(
+                    document.querySelectorAll('.logic-section')
+                ).map(section => section.getAttribute('data-section'));
+                
+                const uniqueSectionTypes = [...new Set(sectionTypes)];
+                
+                // For each section type, find the max height
+                uniqueSectionTypes.forEach(type => {
+                    const sections = document.querySelectorAll(`.logic-section[data-section="${type}"]`);
+                    
+                    // First reset heights to auto to get natural height
+                    sections.forEach(section => {
+                        section.style.minHeight = 'auto';
+                    });
+                    
+                    // Calculate max height
+                    let maxHeight = 0;
+                    sections.forEach(section => {
+                        const height = section.offsetHeight;
+                        maxHeight = Math.max(maxHeight, height);
+                    });
+                    
+                    // Apply max height to all sections of this type
+                    sections.forEach(section => {
+                        section.style.minHeight = `${maxHeight}px`;
+                    });
+                });
+            }
+            
+            // Call this initially and on window resize
+            equalizeSectionHeights();
+            window.addEventListener('resize', equalizeSectionHeights);
+            
+            // Setup resizers
+            resizers.forEach((resizer, index) => {
+                const panel = panels[index];
+                
+                // Mouse down event for resizer
+                resizer.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    currentResizer = resizer;
+                    initialX = e.clientX;
+                    initialWidth = panel.getBoundingClientRect().width;
+                    
+                    // Add event listeners for mouse movement and release
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', () => {
+                        isResizing = false;
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        equalizeSectionHeights(); // Re-adjust heights after resize
+                    });
+                    
+                    e.preventDefault();
+                });
+                
+                // Touch support for resizer
+                resizer.addEventListener('touchstart', (e) => {
+                    isResizing = true;
+                    currentResizer = resizer;
+                    initialX = e.touches[0].clientX;
+                    initialWidth = panel.getBoundingClientRect().width;
+                    
+                    document.addEventListener('touchmove', handleTouchMove);
+                    document.addEventListener('touchend', () => {
+                        isResizing = false;
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        equalizeSectionHeights(); // Re-adjust heights after resize
+                    });
+                    
+                    e.preventDefault();
+                });
+            });
+            
+            // Function to handle mouse movement during resize
+            function handleMouseMove(e) {
+                if (!isResizing) return;
+                
+                const index = Array.from(resizers).indexOf(currentResizer);
+                const panel = panels[index];
+                const nextPanel = panels[index + 1];
+                
+                if (!panel || !nextPanel) return;
+                
+                const deltaX = e.clientX - initialX;
+                const newWidth = initialWidth + deltaX;
+                const containerWidth = container.clientWidth;
+                
+                // Don't allow panels to be too small
+                const minWidth = 100;
+                if (newWidth < minWidth || containerWidth - newWidth < minWidth) return;
+                
+                const flexRatio = newWidth / containerWidth;
+                panel.style.flex = flexRatio;
+                nextPanel.style.flex = 1 - flexRatio;
+            }
+            
+            // Function to handle touch movement during resize
+            function handleTouchMove(e) {
+                if (!isResizing) return;
+                
+                const index = Array.from(resizers).indexOf(currentResizer);
+                const panel = panels[index];
+                const nextPanel = panels[index + 1];
+                
+                if (!panel || !nextPanel) return;
+                
+                const deltaX = e.touches[0].clientX - initialX;
+                const newWidth = initialWidth + deltaX;
+                const containerWidth = container.clientWidth;
+                
+                // Don't allow panels to be too small
+                const minWidth = 100;
+                if (newWidth < minWidth || containerWidth - newWidth < minWidth) return;
+                
+                const flexRatio = newWidth / containerWidth;
+                panel.style.flex = flexRatio;
+                nextPanel.style.flex = 1 - flexRatio;
+            }
+            
+            // Setup expand/collapse buttons
+            expandBtns.forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    const panel = panels[index];
+                    
+                    if (expandedPanel === panel) {
+                        // Collapse if already expanded
+                        panels.forEach(p => p.style.flex = '1');
+                        expandedPanel = null;
+                        btn.innerHTML = '⤢';
+                    } else {
+                        // Expand and collapse others
+                        panels.forEach(p => {
+                            if (p === panel) {
+                                p.style.flex = '3';
+                            } else {
+                                p.style.flex = '0.5';
+                            }
+                        });
+                        expandedPanel = panel;
+                        
+                        // Update all buttons
+                        expandBtns.forEach((b, i) => {
+                            b.innerHTML = i === index ? '⤮' : '⤢';
+                        });
+                    }
+                    
+                    // After changing panel sizes, equalize section heights
+                    setTimeout(equalizeSectionHeights, 300); // After transition completes
+                });
+            });
+            
+            // Create a highlight effect on hover to show alignment
+            const allSections = document.querySelectorAll('.logic-section');
+            allSections.forEach(section => {
+                section.addEventListener('mouseenter', () => {
+                    const sectionType = section.getAttribute('data-section');
+                    const relatedSections = document.querySelectorAll(`.logic-section[data-section="${sectionType}"]`);
+                    
+                    relatedSections.forEach(s => {
+                        s.style.backgroundColor = '#f0f8ff'; // Light blue highlight
+                    });
+                });
+                
+                section.addEventListener('mouseleave', () => {
+                    const sectionType = section.getAttribute('data-section');
+                    const relatedSections = document.querySelectorAll(`.logic-section[data-section="${sectionType}"]`);
+                    
+                    relatedSections.forEach(s => {
+                        s.style.backgroundColor = '';
+                    });
+                });
+            });
+            
+            // Synchronized scrolling with better section alignment
+            contents.forEach((content) => {
+                content.addEventListener('scroll', function() {
+                    const scrollTop = this.scrollTop;
+                    
+                    // Find which section is most visible in the viewport
+                    const sections = this.querySelectorAll('.logic-section');
+                    let mostVisibleSection = null;
+                    let maxVisibleHeight = 0;
+                    
+                    sections.forEach(section => {
+                        const rect = section.getBoundingClientRect();
+                        const contentRect = content.getBoundingClientRect();
+                        
+                        // Calculate how much of the section is visible
+                        const visibleTop = Math.max(rect.top, contentRect.top);
+                        const visibleBottom = Math.min(rect.bottom, contentRect.bottom);
+                        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+                        
+                        if (visibleHeight > maxVisibleHeight) {
+                            maxVisibleHeight = visibleHeight;
+                            mostVisibleSection = section;
+                        }
+                    });
+                    
+                    if (mostVisibleSection) {
+                        const sectionType = mostVisibleSection.getAttribute('data-section');
+                        const sectionOffsetTop = mostVisibleSection.offsetTop;
+                        const sectionScrollRatio = (scrollTop - sectionOffsetTop) / mostVisibleSection.offsetHeight;
+                        
+                        // Sync other panels to show the same section at the same relative position
+                        contents.forEach((c) => {
+                            if (c !== this) {
+                                const targetSection = c.querySelector(`.logic-section[data-section="${sectionType}"]`);
+                                if (targetSection) {
+                                    const targetOffset = targetSection.offsetTop;
+                                    const targetScroll = targetOffset + (sectionScrollRatio * targetSection.offsetHeight);
+                                    c.scrollTop = targetScroll;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (expandedPanel) {
+                    // Maintain expanded state
+                    panels.forEach(p => {
+                        if (p === expandedPanel) {
+                            p.style.flex = '3';
+                        } else {
+                            p.style.flex = '0.5';
+                        }
+                    });
+                } else {
+                    // Reset to equal widths
+                    panels.forEach(p => p.style.flex = '1');
+                }
+                
+                // Re-equalize section heights
+                equalizeSectionHeights();
+            });
+        });
+    </script>
+</body>
+</html>
